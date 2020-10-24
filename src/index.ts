@@ -2,18 +2,34 @@ const rp =  require("request-promise");
 const TOKEN_URI = "https://accounts.spotify.com/api/token";
 const SEARCH_URI = "https://api.spotify.com/v1/search?type=";
 
+type callbackT = (err: string | {} | null, body: string | {} | null) => void;
+type methodT = "GET" | "POST" | "PUT" | "DELETE";
+
 class Spotify {
-  constructor(credentials) {
+  constructor(credentials: Spotify["credentials"]) {
     if (!credentials || !credentials.id || !credentials.secret) {
       throw new Error(
         'Could not initialize Spotify client. You must supply an object containing your Spotify client "id" and "secret".'
       );
     }
     this.credentials = { id: credentials.id, secret: credentials.secret };
-    this.token;
   }
 
-  search(search, cb) {
+  credentials: {id: string, secret: string};
+  token?: {
+      expires_in: number;
+      expires_at: number;
+      access_token: string;
+  };
+
+  search(
+      search: {
+          type: string;
+          query: string;
+          limit: number;
+      },
+      callback: callbackT
+) {
     let request;
     const opts = {
       method: "GET",
@@ -24,7 +40,8 @@ class Spotify {
         encodeURIComponent(search.query) +
         "&limit=" +
         (search.limit || "20"),
-      json: true
+      json: true,
+      headers: undefined as ReturnType<Spotify["getTokenHeader"]> | undefined,
     };
 
     if (!search || !search.type || !search.query) {
@@ -47,23 +64,28 @@ class Spotify {
       request = rp(opts);
     }
 
-    if (cb) {
+    if (callback) {
       request
-        .then((response) => cb(null, response))
-        .catch((err) => cb(err, null));
+        .then((response: Parameters<callbackT>[1]) => callback(null, response))
+        .catch((err: Parameters<callbackT>[0]) => callback(err, null));
     } else {
       return request;
     }
   }
 
-  request(query, {callback, method = "GET"}) {
+  request(query: string, {callback, method = "GET"}: {callback: callbackT, method?: methodT}) {
     if (!query || typeof query !== "string") {
       throw new Error(
         "You must pass in a Spotify API endpoint to use this method."
       );
     }
     let request;
-    const opts = { method, uri: query, json: true };
+    const opts = {
+        method,
+        uri: query,
+        json: true,
+        headers: undefined as undefined | ReturnType<Spotify["getCredentialHeader"]>
+    };
 
     if (
       !this.token ||
@@ -83,8 +105,8 @@ class Spotify {
 
     if (callback) {
       request
-        .then((response) => callback(null, response))
-        .catch((err) => callback(err, null));
+        .then((response: Parameters<callbackT>[1]) => callback(null, response))
+        .catch((err: Parameters<callbackT>[0]) => callback(err, null));
     } else {
       return request;
     }
@@ -107,7 +129,7 @@ class Spotify {
       headers: this.getCredentialHeader(),
       json: true
     };
-    return rp(opts).then((token) => {
+    return rp(opts).then((token: NonNullable<Spotify["token"]>) => {
       this.token = token;
       const currentTime = new Date();
       const expireTime = new Date(+currentTime);
@@ -136,4 +158,4 @@ class Spotify {
   }
 }
 
-module.exports = Spotify;
+export default Spotify;
