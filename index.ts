@@ -73,7 +73,7 @@ class Spotify {
     }
   }
 
-  request(query: string, {callback, method = "GET"}: {callback: callbackT, method?: methodT}) {
+  request(query: string, {callback, method = "GET"}: {callback?: callbackT, method?: methodT}) {
     if (!query || typeof query !== "string") {
       throw new Error(
         "You must pass in a Spotify API endpoint to use this method."
