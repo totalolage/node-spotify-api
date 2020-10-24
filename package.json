@@ -1,6 +1,6 @@
 {
   "name": "@totalolage/node-spotify-api",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "A simple wrapper for the spotify api",
   "repository": {
     "type": "git",
